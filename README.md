@@ -11,18 +11,19 @@ ___
 ### Set up AWS EC2 (Host for the Database and Orchestrator)
 
 #### Provision an EC2 Instance
-Navigate to [Amazon Web Services](https://aws.amazon.com/) and create an account.
-In the search bar at the top, search for and click **EC2**.
-Click the **Launch Instance** button and follow the instructions. For this example, we will be using the Amazon Linux AMI operating system.
-Download the `.pem` key file and keep it secure.
-Wait until the instance state is **Running**.
+
+1. Navigate to [Amazon Web Services](https://aws.amazon.com/) and create an account.
+1. In the search bar at the top, search for and click **EC2**.
+1. Click the **Launch Instance** button and follow the instructions. For this example, we will be using the Amazon Linux AMI operating system.
+1. Download the `.pem` key file and keep it secure.
+1. Wait until the instance state is **Running**.
 
 #### Connect to the EC2 Instance using AWS CloudShell
 
-In the AWS EC2 service, in the left sidebar, select **Instances**.
-Select the newly created instance.
-At the top of the screen, click **Connect**.
-Choose any of the provided options to connect to the instance.
+1. In the AWS EC2 service, in the left sidebar, select **Instances**.
+1. Select the newly created instance.
+1. At the top of the screen, click **Connect**.
+1. Choose any of the provided options to connect to the instance.
 
 As an alternative to CloudShell, you can also use SSH from your local computer.
 
@@ -126,7 +127,6 @@ You can also use the `postgres` user to log in as the `postgres` admin user:
 ```bash
 sudo -u postgres psql
 ```
-
 
 
 ### Airflow (Orchestrator)
