@@ -38,15 +38,31 @@ sudo amazon-linux-extras list | grep postgres
 Choose a version of PostgreSQL and install it:
 ```bash
 sudo amazon-linux-extras install postgresql13
+sudo yum clean metadata
+sudo yum install postgresql postgresql-server
 ```
 
-Verify that the installation was successful:
+Verify that the package installation was successful:
 ```bash
 psql --version
 ```
 
-Alternatively, follow the instructions for your operating system under the [PostgreSQL Downloads page](https://www.postgresql.org/download/).
+Initialize the database configuration:
+```bash
+sudo /bin/postgresql-setup initdb
+```
 
+Enable the PostgreSQL system service:
+```bash
+sudo systemctl enable --now postgresql
+```
+
+Verify that the service is running:
+```bash
+systemctl status postgresql
+```
+
+Alternatively, follow the instructions for your operating system under the [PostgreSQL Downloads page](https://www.postgresql.org/download/).
 
 #### Allow Password Authentication
 
@@ -64,18 +80,15 @@ sudo service postgresql restart
 
 #### Create a PostgreSQL User
 
-Using the `postgres` user, open the `psql` shell:
+Activate the `postgres` user:
 ```bash
-sudo -u postgres psql
+sudo su - postgres
 ```
 
-In the `psql` shell, run the following commands to create a user with root access:
-
-```sql
-CREATE USER <USERNAME>
-WITH ENCRYPTED PASSWORD 'password';
-
-GRANT ROOT TO <USERNAME>;
+Change the password field in the snippet below and create a PostgreSQL admin user with root access:
+```bash
+psql -c "CREATE USER admin WITH ENCRYPTED PASSWORD '<PASSWORD>';"
+psql -c "GRANT postgres TO admin;"
 ```
 
 Exit the shell:
@@ -83,10 +96,9 @@ Exit the shell:
 exit
 ```
 
-
 Using the `postgres` user, create a database:
 ```bash
-sudo -u postgres createdb <DATABASE_NAME>
+sudo -u postgres createdb foundations
 ```
 
 #### Log In
