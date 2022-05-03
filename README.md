@@ -65,56 +65,20 @@ systemctl status postgresql
 
 Alternatively, follow the instructions for your operating system under the [PostgreSQL Downloads page](https://www.postgresql.org/download/).
 
-#### Allow Password Authentication
 
-Modify the PostgreSQL configuration to allow password identification. First, open the file:
-```bash
-sudo edit /etc/postgresql/<POSTGRES_VER>/main/pg_hba.conf
-```
+#### Log into PostgreSQL as admin
 
-Edit the line `local all postgres peer` by replacing `peer` with `ident`.
-
-Restart PostgreSQL:
-```bash
-sudo service postgresql restart
-```
-
-#### Create a PostgreSQL User
-
-Activate the `postgres` user:
+Change to the `postgres` Linux user:
 ```bash
 sudo su - postgres
 ```
 
-Change the password field in the snippet below and create a PostgreSQL admin user with root access:
+From here, you can log into the PostgreSQL shell (`psql`) as the database user `postgres`:
 ```bash
-psql -c "CREATE USER admin WITH ENCRYPTED PASSWORD '<PASSWORD>';"
-psql -c "GRANT postgres TO admin;"
+psql
 ```
 
-Exit the shell:
-```bash
-exit
-```
-
-Using the `postgres` user, create a database:
-```bash
-sudo -u postgres createdb foundations
-```
-
-#### Log In
-
-You should now be able to log in with the following command:
-```bash
-psql -U <USERNAME>
-```
-
-Alternatively, connect to a database while logging in:
-```bash
-psql -U <USERNAME> <DATABASE_NAME>
-```
-
-Connect to a database manually while in the `psql` shell:
+You can connect to a database manually while in the `psql` shell:
 ```sql
 # List databases
 \list
@@ -123,9 +87,57 @@ Connect to a database manually while in the `psql` shell:
 \connect <DATABASE_NAME>
 ```
 
-You can also use the `postgres` user to log in as the `postgres` admin user:
+
+To exit psql, type:
 ```bash
-sudo -u postgres psql
+exit
+```
+
+To return to the original Linux user at any time, type:
+```bash
+exit
+```
+
+#### Initiate a User and Database
+
+If not already in the `postgres` Linux user, change to it.
+
+Change the password field in the snippet below and create a PostgreSQL admin user with root access:
+```bash
+psql -c "CREATE USER admin WITH ENCRYPTED PASSWORD '<PASSWORD>';"
+psql -c "GRANT postgres TO admin;"
+
+psql -c "CREATE USER airflow WITH ENCRYPTED PASSWORD '<PASSWORD>';"
+```
+
+Create a database using the `postgres` `psql` user:
+```bash
+sudo -u postgres createdb foundations
+```
+
+
+#### Enable Password Authentication for the new User
+
+If not already in the `postgres` Linux user, change to it.
+
+Print the location of the configuration file:
+```bash
+psql -c "SHOW hba_file;"
+```
+
+Open the file:
+```bash
+edit /<PATH>/pg_hba.conf
+```
+
+Add a new line which says:
+```
+local foundations airflow    ident
+```
+
+Restart PostgreSQL:
+```bash
+sudo service postgresql restart
 ```
 
 
