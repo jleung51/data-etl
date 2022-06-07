@@ -4,6 +4,8 @@ Data ETL pipeline to clean, process, and aggregate data from Canadian housing st
 
 Built with [Apache Airflow](https://airflow.apache.org/), [dbt](https://www.getdbt.com/), and [Amazon Web Services EC2](https://aws.amazon.com/ec2/).
 
+Read the [design document here](https://docs.google.com/document/d/1zan6-rcnNHz4wdBt0fvPxRnJLioCjlaFQUfi1_0EU04/edit).
+
 ___
 
 ## Setup Instructions
