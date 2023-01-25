@@ -4,9 +4,31 @@ Data ETL pipeline to clean, process, and aggregate data from Canadian housing st
 
 Built with [Apache Airflow](https://airflow.apache.org/), [dbt](https://www.getdbt.com/), and [Amazon Web Services EC2](https://aws.amazon.com/ec2/).
 
-Read the [design document here](https://docs.google.com/document/d/1zan6-rcnNHz4wdBt0fvPxRnJLioCjlaFQUfi1_0EU04/edit).
+Learn more about the project by reading the [design document](https://docs.google.com/document/d/1zan6-rcnNHz4wdBt0fvPxRnJLioCjlaFQUfi1_0EU04/edit).
+
+---
+
+## Table of Contents
+
+- [Foundations: Data Pipeline](#foundations-data-pipeline)
+  - [Table of Contents](#table-of-contents)
+  - [Setup Instructions](#setup-instructions)
+    - [Set up AWS EC2 (Host for the Database and Orchestrator)](#set-up-aws-ec2-host-for-the-database-and-orchestrator)
+      - [Provision an EC2 Instance](#provision-an-ec2-instance)
+      - [Connect to the EC2 Instance using AWS CloudShell](#connect-to-the-ec2-instance-using-aws-cloudshell)
+    - [Set up Docker (Containerizer)](#set-up-docker-containerizer)
+    - [Set up Airflow (Orchestrator)](#set-up-airflow-orchestrator)
+      - [Setup](#setup)
+      - [Expose Airflow Console with the EC2 Port](#expose-airflow-console-with-the-ec2-port)
+  - [Usage](#usage)
+    - [Start Airflow](#start-airflow)
+    - [Interact with Airflow (Local)](#interact-with-airflow-local)
+
+<sub>Table of contents created with [VS Code Extension: Markdown All in One](https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one).
+</sub>
 
 ___
+
 
 ## Setup Instructions
 
@@ -29,159 +51,94 @@ ___
 
 As an alternative to CloudShell, you can also use SSH from your local computer.
 
-### Set up PostgreSQL (Database)
 
-Log into the EC2 instance using AWS CloudShell or SSH.
+### Set up Docker (Containerizer)
 
-Check the PostgreSQL packages available from the Amazon Linux package manager:
-```bash
-sudo amazon-linux-extras list | grep postgres
+Follow the instructions at:
+1. [Installing Docker to use with the AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-docker.html)
+2. [Install Docker Engine](https://docs.docker.com/engine/install/)
+3. [Install Docker Compose](https://docs.docker.com/compose/install/linux/#install-using-the-repository)
+
+Ensure your user has the permissions to execute Docker:
+```shell
+sudo groupadd docker
+sudo usermod -aG docker $USER
 ```
 
-Choose a version of PostgreSQL and install it:
-```bash
-sudo amazon-linux-extras install postgresql13
-sudo yum clean metadata
-sudo yum install postgresql postgresql-server
+Log out and back in to get permissions.
+
+
+
+### Set up Airflow (Orchestrator)
+
+This section is based on the [guide for running Airflow using Docker Compose](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html).
+
+#### Setup
+
+If you are on Linux, update the Airflow UID in the `.env` file with the host user ID:
+```shell
+echo -e "AIRFLOW_UID=$(id -u)" > .env
 ```
 
-Verify that the package installation was successful:
-```bash
-psql --version
+Run database migrations and initialize the first user account:
+```shell
+docker compose up airflow-init
 ```
 
-Initialize the database configuration:
-```bash
-sudo /bin/postgresql-setup initdb
+#### Expose Airflow Console with the EC2 Port
+
+Follow the commands under [these instructions](https://aws.amazon.com/premiumsupport/knowledge-center/connect-http-https-ec2/) to add security group rules which permit HTTP access to port 80.
+
+Once complete, the security rules should look like this:
+
+![Security group rules](readme-img/aws-security-rules.png)
+
+---
+
+## Usage
+
+### Start Airflow
+
+Start all services:
+```shell
+sudo docker compose up
 ```
 
-Enable the PostgreSQL system service:
-```bash
-sudo systemctl enable --now postgresql
+`sudo` is required to run the Airflow console on port 80.  
+If you want to avoid `sudo` or prefer another port:
+- Open `docker-compose.yaml`
+- Find the configuration for `airflow-webserver`
+- Change the port number in the variable `ports`
+
+
+You can stop all services with:
+```shell
+docker compose down
 ```
 
-Verify that the service is running:
-```bash
-systemctl status postgresql
+Airflow is now running on your machine.
+
+### Interact with Airflow (Local)
+
+If you set up Airflow and Docker locally, you can log into Airflow at http://localhost:80; otherwise use the port you used to expose the Airflow console.
+
+The default username and password `airflow`; reset it immediately after logging in.
+
+You can view information on the current environment:
+```shell
+docker compose run airflow-worker airflow info
+OR
+./bin/airflow info
 ```
 
-Alternatively, follow the instructions for your operating system under the [PostgreSQL Downloads page](https://www.postgresql.org/download/).
-
-
-#### Log into PostgreSQL as admin
-
-Change to the `postgres` Linux user:
-```bash
-sudo su - postgres
+Enter the running Docker container to execute commands:
+```shell
+./bin/airflow bash
 ```
 
-From here, you can log into the PostgreSQL shell (`psql`) as the database user `postgres`:
-```bash
-psql
+Stop and delete all containers and volumes:
+```shell
+docker-compose down --volumes --rmi all
 ```
 
-You can connect to a database manually while in the `psql` shell:
-```sql
-# List databases
-\list
-
-# Connect to a specific database
-\connect <DATABASE_NAME>
-```
-
-
-To exit psql, type:
-```bash
-exit
-```
-
-To return to the original Linux user at any time, type:
-```bash
-exit
-```
-
-#### Initiate a User and Database
-
-If not already in the `postgres` Linux user, change to it.
-
-Change the password field in the snippet below and create a PostgreSQL admin user with root access:
-```bash
-psql -c "CREATE USER admin WITH ENCRYPTED PASSWORD '<PASSWORD>';"
-psql -c "GRANT postgres TO admin;"
-
-psql -c "CREATE USER airflow WITH ENCRYPTED PASSWORD '<PASSWORD>';"
-```
-
-Create a database using the `postgres` `psql` user:
-```bash
-sudo -u postgres createdb foundations
-```
-
-
-#### Enable Password Authentication for the new User
-
-If not already in the `postgres` Linux user, change to it.
-
-Print the location of the configuration file:
-```bash
-psql -c "SHOW hba_file;"
-```
-
-Open the file:
-```bash
-edit /<PATH>/pg_hba.conf
-```
-
-Add a new line which says:
-```
-local foundations airflow    ident
-```
-
-Restart PostgreSQL:
-```bash
-sudo service postgresql restart
-```
-
-
-### Airflow (Orchestrator)
-
-Instructions under construction.
-
-
-#### Connect Airflow with PostgreSQL
-
-These steps are detailed instructions built from Airflow's [Setting up a PostgreSQL Database guide](https://airflow.apache.org/docs/apache-airflow/2.2.2/howto/set-up-database.html#setting-up-a-postgresql-database).
-
-
-Using the `psql` admin, run the SQL script `setup/psql-airflow.sql` to generate the Airflow database and user:
-```bash
-sudo -u postgres psql -d <DATABASE_NAME> -f ./setup/psql-airflow.sql --echo-all
-```
-
-By default, this will create the following:
-- Database: `airflow_db`
-- PostgreSQL user (with full access to `airflow_db`): `airflow_user`
-- PostgreSQL password: `airflow_pass`
-
-
-Edit the Airflow configuration file (located at `~/airflow/airflow.cfg` by default) and modify the value of `sql_alchemy_conn` as follows:
-```
-sql_alchemy_conn = postgresql+psycopg2://airflow_user:airflow_pass@<HOST>/airflow_db
-```
-
-**Note**: If Airflow and PostgreSQL are on the same machine, then `<HOST>` can be replaced with `localhost`; otherwise, use the hostname of PostgreSQL.
-
-
-Install the Python library `psycopg2` to use the connector:
-```bash
-pip3 install psycopg2
-```
-
-
-Initiate the Airflow database:
-```bash
-airflow db init
-```
-
-Start up Airflow and it will begin to use PostgreSQL as the database.
 
